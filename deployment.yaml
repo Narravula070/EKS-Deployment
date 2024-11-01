@@ -2,24 +2,24 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app.kubernetes.io/name: cicd-demo
-    app.kubernetes.io/instance: cicd-demo-instance
+    app.kubernetes.io/name: EKS-Deployment
+    app.kubernetes.io/instance: EKS-Deployment-instance
     app.kubernetes.io/version: '1.0.0'
     app.kubernetes.io/managed-by: kubectl
-  name: cicd-demo-deployment
+  name: EKS-demo-deployment
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: cicd-demo
+      app: EKS-Deployment
   template:
     metadata:
       labels:
-        app: cicd-demo
+        app: EKS-Deployment
     spec:
       containers:
         - image: 637423426652.dkr.ecr.ap-south-1.amazonaws.com/eks-repo:latest
           imagePullPolicy: Always
-          name: cicd-demo
+          name: EKS-Deployment
           ports:
             - containerPort: 3000
