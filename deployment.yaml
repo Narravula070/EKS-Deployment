@@ -2,24 +2,36 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app.kubernetes.io/name: EKS-Deployment
-    app.kubernetes.io/instance: EKS-Deployment-instance
+    app.kubernetes.io/name: cicd-demo
+    app.kubernetes.io/instance: cicd-demo-instance
     app.kubernetes.io/version: '1.0.0'
     app.kubernetes.io/managed-by: kubectl
-  name: EKS-demo-deployment
+  name: cicd-demo-deployment
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: EKS-Deployment
+      app: cicd-demo
   template:
     metadata:
       labels:
-        app: EKS-Deployment
+        app: cicd-demo
     spec:
       containers:
-        - image: 637423426652.dkr.ecr.ap-south-1.amazonaws.com/eks-repo:latest
-          imagePullPolicy: Always
-          name: EKS-Deployment
+        - name: cicd-demo
+          image: 637423426652.dkr.ecr.ap-south-1.amazonaws.com/eks-repo:latest
+          imagePullPolicy: Always  # Ensure the latest image is always pulled
           ports:
-            - containerPort: 3000
+            - containerPort: 3000  # Specify the container's exposed port
+          resources:  # Resource requests and limits (optional, but recommended)
+            requests:
+              memory: "512Mi"  # Adjust based on your application's needs
+              cpu: "250m"      # Adjust based on your application's needs
+            limits:
+              memory: "1Gi"    # Adjust based on your application's needs
+              cpu: "500m"      # Adjust based on your application's needs
+          env:  # Example of how to set environment variables (if needed)
+            - name: ENV_VARIABLE_NAME
+              value: "value"
+      imagePullSecrets:  # Use if you need to pull from a private ECR
+        - name: my-ecr-secret  # Replace with your secret name if applicable
