@@ -12,19 +12,18 @@ phases:
       - source ~/.bashrc
       - echo 'Check kubectl version'
       - kubectl version --short --client
+      - export REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME  # Export the repository URI
 
   pre_build:
     commands:
       - echo Logging into Amazon EKS...
       - aws eks --region $AWS_DEFAULT_REGION update-kubeconfig --name $AWS_CLUSTER_NAME
-      - echo check config 
+      - echo Checking kubectl config 
       - kubectl config view --minify
-      - echo check kubectl access
-      - kubectl get svc
+      - echo Checking kubectl access
       - echo Logging in to Amazon ECR...
-      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
-      - REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME
-      - echo $REPOSITORY_URI
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $REPOSITORY_URI
+      - echo Pulling Docker image...
       - docker pull $REPOSITORY_URI:$IMAGE_TAG
 
   build:
@@ -32,15 +31,21 @@ phases:
       - echo Build started on `date`
       - echo Building the Docker image...          
       - docker build --cache-from $REPOSITORY_URI:$IMAGE_TAG -t $IMAGE_REPO_NAME:$IMAGE_TAG .
-      - docker tag $IMAGE_REPO_NAME:$IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG 
+      - docker tag $IMAGE_REPO_NAME:$IMAGE_TAG $REPOSITORY_URI:$IMAGE_TAG 
 
-  post_build:
-    commands:
-      - echo Build completed on `date`
-      - echo Pushing the Docker image...
-      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
-      - echo Push the latest image to cluster
-      - kubectl apply -f ./deployment.yaml  # Ensure this applies correctly
-      - kubectl apply -f ./service.yaml     # Ensure this applies correctly
-      - kubectl rollout restart deployment/cicd-demo-deployment  # Update with the actual deployment name
-      - kubectl get svc --all-namespaces
+post_build:
+  commands:
+    - echo Build completed on `date`
+    - echo Pushing the Docker image...
+    - docker push $REPOSITORY_URI:$IMAGE_TAG
+    - echo Checking Kubernetes context...
+    - kubectl config current-context
+    - echo Displaying contents of deployment.yaml...
+    - cat ./deployment.yaml
+    - echo Applying the deployment...
+    - kubectl apply -f ./deployment.yaml
+    - kubectl get events --sort-by='.metadata.creationTimestamp'  # Get recent events
+    - echo Applying the service...
+    - kubectl apply -f ./service.yaml
+    - kubectl rollout restart deployment/cicd-demo-deployment
+    - kubectl get svc --all-namespaces
